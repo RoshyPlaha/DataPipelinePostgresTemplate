@@ -1,0 +1,145 @@
+{
+    "objects": [
+      {
+        "connectionString": "jdbc:postgresql://hostname:port/databasename",
+        "*password": "#{*myRDSPassword}",
+        "name": "rds_mysql",
+        "id": "rds_mysql",
+        "jdbcDriverJarUri": "#{myJDBCDriverPath}",
+        "type": "JdbcDatabase",
+        "jdbcDriverClass": "org.postgresql.Driver",
+        "username": "#{myRDSUsername}"
+      },
+      {
+        "database": {
+          "ref": "rds_mysql"
+        },
+        "name": "SourceRDSTable",
+        "id": "SourceRDSTable",
+        "type": "SqlDataNode",
+        "table": "#{myRDSTableName}",
+        "selectQuery": "SELECT * FROM some_table"
+      },
+      {
+        "failureAndRerunMode": "CASCADE",
+        "resourceRole": "DataPipelineDefaultResourceRole",
+        "role": "DataPipelineDefaultRole",
+        "pipelineLogUri": "#{myPipelines3LogLoc}",
+        "scheduleType": "ONDEMAND",
+        "name": "Default",
+        "id": "Default"
+      },
+      {
+        "output": {
+          "ref": "S3OutputLocation"
+        },
+        "input": {
+          "ref": "SourceRDSTable"
+        },
+        "name": "RDStoS3CopyActivity",
+        "runsOn": {
+          "ref": "Ec2Instance"
+        },
+        "id": "RDStoS3CopyActivity",
+        "type": "CopyActivity"
+      },
+      {
+        "directoryPath": "#{myOutputS3Loc}/#{format(@scheduledStartTime, 'YYYY-MM-dd-HH-mm-ss')}",
+        "name": "S3OutputLocation",
+        "id": "S3OutputLocation",
+        "type": "S3DataNode"
+      },
+      {
+        "subnetId": "#{mySubnetId}",
+        "securityGroupIds": "#{myEc2RdsSecurityGrps}",
+        "instanceType": "#{myEC2InstanceType}",
+        "name": "Ec2Instance",
+        "actionOnTaskFailure": "terminate",
+        "id": "Ec2Instance",
+        "type": "Ec2Resource",
+        "terminateAfter": "2 Hours"
+      }
+    ],
+    "parameters": [
+      {
+        "description": "RDS MySQL password",
+        "id": "*myRDSPassword",
+        "type": "String"
+      },
+      {
+        "description": "Output S3 csv query folder",
+        "id": "myOutputS3Loc",
+        "type": "AWS::S3::ObjectKey"
+      },
+      {
+        "description": "Output S3 log folder",
+        "id": "myPipelines3LogLoc",
+        "type": "AWS::S3::ObjectKey"
+      },
+      {
+        "description": "RDS MySQL username",
+        "id": "myRDSUsername",
+        "type": "String"
+      },
+      {
+        "watermark": "security group name",
+        "helpText": "The names of one or more EC2 security groups that have access to the RDS cluster.",
+        "description": "Ec2 Security group(s)",
+        "isArray": "true",
+        "optional": "true",
+        "id": "myEc2RdsSecurityGrps",
+        "type": "String"
+      },
+      {
+        "helpText": "Subnet where instances will run from",
+        "description": "Subnet ID",
+        "id": "mySubnetId",
+        "type": "String"
+      },
+      {
+        "default": "t1.micro",
+        "helpText": "The type of the EC2 instance that will be launched on your behalf to do the copy",
+        "description": "EC2 instance type",
+        "id": "myEC2InstanceType",
+        "type": "String"
+      },
+      {
+        "default": "jdbc:postgresql://host:port/database_name",
+        "helpText": "Postgres Connection String",
+        "description": "DB Connection String",
+        "id": "myConnectionString",
+        "type": "String"
+      },
+      {
+        "watermark": "DB Instance",
+        "description": "RDS Instance ID",
+        "id": "myRDSInstanceId",
+        "type": "String"
+      },
+      {
+        "helpText": "Not actually needed but a requirement by AWS",
+        "description": "RDS MySQL table name",
+        "id": "myRDSTableName",
+        "type": "String"
+      },
+      {
+        "helpText": "Path to JDBC Driver for Postgres",
+        "description": "Postgres Java 7 driver",
+        "id": "myJDBCDriverPath",
+        "type": "String"
+      }
+    ],
+    "values": {
+      "myRDSInstanceId": "rds_instance_id",
+      "myRDSUsername": "rds_username",
+      "myEC2InstanceType": "t1.micro",
+      "myOutputS3Loc": "s3://s3-bucket-name/optional-nested-folder",
+      "myPipelines3LogLoc": "s3://logging-s3-bucket-name/optional-nested-folder",
+      "*myRDSPassword": "rds_password",
+      "myEc2RdsSecurityGrps": "",
+      "mySubnetId": "",
+      "myConnectionString": "jdbc:postgresql://host:port/database_name",
+      "myRDSTableName": "lot",
+      "myJDBCDriverPath": "s3://datapipeline-jdbc-driver/postgresql-9.4-1204.jdbc41.jar"
+    }
+  }
